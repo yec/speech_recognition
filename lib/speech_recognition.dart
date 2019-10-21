@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 typedef void AvailabilityHandler(bool result);
 typedef void StringResultHandler(String text);
+typedef void ListResultHandler(List list);
 
 /// the channel to control the speech recognition
 class SpeechRecognition {
@@ -23,8 +24,11 @@ class SpeechRecognition {
 
   StringResultHandler currentLocaleHandler;
   StringResultHandler recognitionResultHandler;
+  ListResultHandler recognitionMultipleResultHandler;
 
   VoidCallback recognitionStartedHandler;
+
+  VoidCallback recognitionStoppedHandler;
 
   StringResultHandler recognitionCompleteHandler;
   
@@ -55,8 +59,14 @@ class SpeechRecognition {
       case "speech.onSpeech":
         recognitionResultHandler(call.arguments);
         break;
+      case "speech.onSpeechMultiple":
+        recognitionMultipleResultHandler(call.arguments);
+        break;
       case "speech.onRecognitionStarted":
         recognitionStartedHandler();
+        break;
+      case "speech.onRecognitionStopped":
+        recognitionStoppedHandler();
         break;
       case "speech.onRecognitionComplete":
         recognitionCompleteHandler(call.arguments);
@@ -74,12 +84,20 @@ class SpeechRecognition {
       availabilityHandler = handler;
 
   // define a method to handle recognition result
+  void setRecognitionMultipleResultHandler(ListResultHandler handler) =>
+      recognitionMultipleResultHandler = handler;
+
+  // define a method to handle recognition result
   void setRecognitionResultHandler(StringResultHandler handler) =>
       recognitionResultHandler = handler;
 
   // define a method to handle native call
   void setRecognitionStartedHandler(VoidCallback handler) =>
       recognitionStartedHandler = handler;
+
+  // define a method to handle native call
+  void setRecognitionStoppedHandler(VoidCallback handler) =>
+      recognitionStoppedHandler = handler;
 
   // define a method to handle native call
   void setRecognitionCompleteHandler(StringResultHandler handler) =>

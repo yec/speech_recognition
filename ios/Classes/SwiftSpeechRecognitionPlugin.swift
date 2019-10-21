@@ -15,6 +15,7 @@ public class SwiftSpeechRecognitionPlugin: NSObject, FlutterPlugin, SFSpeechReco
   private let speechRecognizerRu = SFSpeechRecognizer(locale: Locale(identifier: "ru_RU"))!
   private let speechRecognizerIt = SFSpeechRecognizer(locale: Locale(identifier: "it_IT"))!
   private let speechRecognizerEs = SFSpeechRecognizer(locale: Locale(identifier: "es_ES"))!
+  private let speechRecognizerTh = SFSpeechRecognizer(locale: Locale(identifier: "th_TH"))!
 
   private var speechChannel: FlutterMethodChannel?
 
@@ -51,6 +52,7 @@ public class SwiftSpeechRecognitionPlugin: NSObject, FlutterPlugin, SFSpeechReco
     speechRecognizerRu.delegate = self
     speechRecognizerIt.delegate = self
     speechRecognizerEs.delegate = self
+    speechRecognizerTh.delegate = self
 
     SFSpeechRecognizer.requestAuthorization { authStatus in
       OperationQueue.main.addOperation {
@@ -98,7 +100,8 @@ public class SwiftSpeechRecognitionPlugin: NSObject, FlutterPlugin, SFSpeechReco
   private func stopRecognition(result: FlutterResult) {
     if audioEngine.isRunning {
       audioEngine.stop()
-      recognitionRequest?.endAudio()
+      recognitionRequest?.endAudio() 
+      speechChannel!.invokeMethod("speech.onRecognitionStopped", arguments: nil)
     }
     result(false)
   }
@@ -124,12 +127,18 @@ public class SwiftSpeechRecognitionPlugin: NSObject, FlutterPlugin, SFSpeechReco
 
     let speechRecognizer = getRecognizer(lang: lang)
 
+    // Keep speech recognition data on device
+    if #available(iOS 13, *) && speechRecognizer.supportsOnDeviceRecognition {
+      recognitionRequest.requiresOnDeviceRecognition = true
+    }
+
     recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
       var isFinal = false
 
       if let result = result {
         print("Speech : \(result.bestTranscription.formattedString)")
         self.speechChannel?.invokeMethod("speech.onSpeech", arguments: result.bestTranscription.formattedString)
+        self.speechChannel?.invokeMethod("speech.onSpeechMultiple", arguments: result.transcriptions.map({$0.segments.map{$0.substring}}))
         isFinal = result.isFinal
         if isFinal {
           self.speechChannel!.invokeMethod(
